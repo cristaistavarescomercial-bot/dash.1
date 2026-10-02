@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Vendas — Lavik</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-alt: #f5f1e6;
+    --border: #e5dcc7;
+    --text: #2b2622;
+    --text-muted: #5c5346;
+    --accent: #c2371f;
+    --accent-soft: #f7ded9;
+    --ok: #3f7d4f;
+    --ok-soft: #e1efde;
+    --warn: #a4720a;
+    --warn-soft: #f6ecd6;
+    --shadow: 0 1px 2px rgba(43,38,34,0.06);
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Work Sans', Arial, sans-serif;
+    line-height: 1.45;
+    padding-inline: 20px;
+    padding-block: 0 40px;
+  }
+  h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; color: var(--text); margin: 0; text-wrap: balance; }
+  .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-variant-numeric: tabular-nums; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select { font-family: inherit; font-size: 14px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    padding-block: 18px 12px;
+    border-bottom: 1px solid var(--border);
+    margin-inline: -20px; padding-inline: 20px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .top-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .brand { display: flex; flex-direction: column; gap: 4px; }
+  .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1 { font-size: 26px; font-weight: 600; }
+  .month-picker { display: flex; align-items: center; gap: 8px; }
+  .month-picker input {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; color: var(--text);
+  }
+  .refresh-btn {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-muted);
+    border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600;
+  }
+  nav.tabs { display: flex; gap: 4px; background: var(--surface-alt); border-radius: 10px; padding: 4px; width: fit-content; max-width: 100%; overflow-x: auto; }
+  nav.tabs button {
+    border: none; background: transparent; color: var(--text-muted);
+    padding: 8px 16px; border-radius: 7px; font-size: 13.5px; font-weight: 600; white-space: nowrap;
+  }
+  nav.tabs button[aria-selected="true"] { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+
+  main { max-width: 960px; margin: 0 auto; padding-top: 22px; display: flex; flex-direction: column; gap: 26px; }
+  section[hidden] { display: none !important; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .stat { background: var(--surface); padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .stat .label { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+  .stat .value { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 600; }
+  .stat .value.accent { color: var(--accent); }
+  .stat .value.ok { color: var(--ok); }
+  .stat .sub { font-size: 11.5px; color: var(--text-muted); }
+  .meta-card {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 14px 24px;
+    background: var(--surface-alt); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 18px; margin-top: 12px;
+  }
+  .meta-card .meta-info { display: flex; flex-direction: column; gap: 3px; }
+  .meta-card .label { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+  .meta-card .value { font-family: 'Playfair Display', serif; font-size: 21px; font-weight: 600; }
+  .meta-edit { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; }
+  .meta-edit input { width: 130px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 13.5px; color: var(--text); }
+  .meta-edit button { background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+  .card h2 { font-size: 16px; margin-bottom: 4px; }
+  .card .lede { font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px; }
+
+  .linhas-split { display: flex; gap: 14px; flex-wrap: wrap; }
+  .linha-tile { flex: 1; min-width: 160px; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .linha-tile.primeira { background: var(--ok-soft); }
+  .linha-tile.segunda { background: var(--warn-soft); }
+  .linha-tile .nome { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .linha-tile.primeira .nome { color: var(--ok); }
+  .linha-tile.segunda .nome { color: var(--warn); }
+  .linha-tile .valor { font-family: 'IBM Plex Mono', monospace; font-size: 19px; font-weight: 600; }
+  .linha-tile .pct { font-size: 11.5px; color: var(--text-muted); }
+
+  svg.chart { width: 100%; height: auto; overflow: visible; }
+  svg.chart text { font-family: 'IBM Plex Mono', monospace; fill: var(--text-muted); }
+  svg.chart .bar { fill: var(--accent); }
+  svg.chart .grid { stroke: var(--border); stroke-width: 1; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); background: var(--surface-alt); }
+  td.num, th.num { text-align: right; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: none; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  .table-wrap table { min-width: 560px; }
+  .badge { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 999px; }
+  .badge.primeira { background: var(--ok-soft); color: var(--ok); }
+  .badge.segunda { background: var(--warn-soft); color: var(--warn); }
+  .del-btn { border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 6px; padding: 4px 9px; font-size: 11.5px; }
+  .del-btn.confirm { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .empty { padding: 30px 10px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
+  .setup-warning {
+    background: var(--warn-soft); border: 1px solid var(--warn); color: var(--text);
+    border-radius: 12px; padding: 16px 18px; font-size: 13.5px; line-height: 1.6;
+  }
+  .setup-warning code { background: var(--surface); padding: 1px 6px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; }
+
+  form.entry { display: flex; flex-direction: column; gap: 16px; max-width: 480px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+  .field input, .field select, .field textarea {
+    background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 11px; color: var(--text); font-size: 14px;
+  }
+  .field textarea { resize: vertical; min-height: 44px; font-family: inherit; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .row2, .row3 { grid-template-columns: 1fr; } }
+  .radio-group { display: flex; gap: 10px; }
+  .radio-opt {
+    flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center;
+    font-size: 13.5px; font-weight: 600; color: var(--text-muted); background: var(--surface);
+  }
+  .radio-opt input { display: none; }
+  .radio-opt.checked.primeira { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); }
+  .radio-opt.checked.segunda { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+  .preview-liquido { font-size: 13px; color: var(--text-muted); padding: 10px 12px; background: var(--surface-alt); border-radius: 8px; }
+  .preview-liquido b { color: var(--text); font-family: 'IBM Plex Mono', monospace; }
+  .submit-btn { background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 13px; font-size: 14.5px; font-weight: 700; box-shadow: var(--shadow); }
+  .submit-btn:disabled { opacity: 0.55; }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: 13px;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+
+  .top-produtos-row { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 14px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .top-produtos-row:last-child { border-bottom: none; }
+  .top-produtos-row .nome { font-weight: 500; }
+  .top-produtos-row .qtd { color: var(--text-muted); font-size: 12px; }
+  .top-produtos-row .valor { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+
+  .busca-input { width: 100%; max-width: 360px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13.5px; color: var(--text); margin-bottom: 14px; }
+  .inline-num { width: 64px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 5px 7px; font-size: 13px; color: var(--text); text-align: right; }
+  .inline-select { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 12px; font-weight: 600; color: var(--text); }
+  .inline-select.producao { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+  .inline-select.pronta { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); }
+  .estoque-resumo { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; font-size: 12.5px; color: var(--text-muted); }
+  .estoque-resumo b { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-row">
+    <div class="brand">
+      <span class="eyebrow">Cristais Tavares · Mercado Livre</span>
+      <h1>Painel de vendas — Lavik</h1>
+    </div>
+    <div class="month-picker">
+      <label for="mesInput" style="font-size:12.5px; color:var(--text-muted)">Mês</label>
+      <input type="month" id="mesInput">
+      <button type="button" class="refresh-btn" id="refreshBtn">Atualizar</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="painel">Painel</button>
+    <button role="tab" aria-selected="false" data-tab="lancar">Lançar venda</button>
+    <button role="tab" aria-selected="false" data-tab="lista">Lançamentos</button>
+    <button role="tab" aria-selected="false" data-tab="estoque">Estoque real</button>
+  </nav>
+</header>
+
+<main>
+  <section id="tab-painel">
+    <div class="stats" id="statsGrid"></div>
+    <div class="meta-card" id="metaCard"></div>
+
+    <div class="card">
+      <h2>Primeira x Segunda linha</h2>
+      <p class="lede">Peças perfeitas x peças com pequeno defeito de fabricação, vendidas separadas.</p>
+      <div class="linhas-split" id="linhasSplit"></div>
+    </div>
+
+    <div class="card">
+      <h2>Vendido por dia</h2>
+      <p class="lede" id="chartLede">&nbsp;</p>
+      <svg class="chart" id="dailyChart" viewBox="0 0 800 220" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <div class="card">
+      <h2>Produtos do mês</h2>
+      <p class="lede">Somado pelo texto de observação de cada venda.</p>
+      <div id="topProdutos"></div>
+    </div>
+  </section>
+
+  <section id="tab-lancar" hidden>
+    <div class="card">
+      <h2>Lançar venda</h2>
+      <p class="lede">Preencha como sai no extrato do Mercado Livre. O líquido é calculado sozinho.</p>
+      <form class="entry" id="entryForm">
+        <div class="row2">
+          <div class="field">
+            <label for="fData">Data</label>
+            <input type="date" id="fData" required>
+          </div>
+          <div class="field">
+            <label>Linha</label>
+            <div class="radio-group">
+              <label class="radio-opt primeira" data-linha="Primeira">
+                <input type="radio" name="linha" value="Primeira">Primeira
+              </label>
+              <label class="radio-opt segunda checked" data-linha="Segunda">
+                <input type="radio" name="linha" value="Segunda" checked>Segunda
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="row3">
+          <div class="field">
+            <label for="fValor">Valor da venda (R$)</label>
+            <input type="number" id="fValor" step="0.01" min="0" required>
+          </div>
+          <div class="field">
+            <label for="fTarifa">Tarifa de venda (R$)</label>
+            <input type="number" id="fTarifa" step="0.01" min="0" value="0">
+          </div>
+          <div class="field">
+            <label for="fEnvios">Envios (R$)</label>
+            <input type="number" id="fEnvios" step="0.01" min="0" value="0">
+          </div>
+        </div>
+        <div class="row3">
+          <div class="field">
+            <label for="fEstornos">Estornos (R$)</label>
+            <input type="number" id="fEstornos" step="0.01" min="0" value="0">
+          </div>
+          <div class="field">
+            <label for="fQtd">Qtd. peças</label>
+            <input type="number" id="fQtd" step="1" min="1" value="1">
+          </div>
+        </div>
+        <div class="field">
+          <label for="fObs">Observações (produto)</label>
+          <textarea id="fObs" placeholder="Ex: Abajur Brinde Cúpula Onça"></textarea>
+        </div>
+        <div class="preview-liquido" id="previewLiquido">Valor líquido: <b>R$ 0,00</b></div>
+        <button type="submit" class="submit-btn" id="submitBtn">Salvar venda</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="tab-lista" hidden>
+    <div class="card">
+      <h2>Lançamentos do mês</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th><th>Linha</th><th class="num">Venda</th><th class="num">Líquido</th>
+              <th class="num">Peças</th><th>Observações</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="listaBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-estoque" hidden>
+    <div class="card">
+      <h2>Estoque real &amp; produção</h2>
+      <p class="lede">Estoque físico e status de cada anúncio ativo (separado do que o Mercado Livre mostra). Edite estoque real e status direto na tabela — salva sozinho.</p>
+      <div class="estoque-resumo" id="estoqueResumo"></div>
+      <input type="text" class="busca-input" id="estoqueBusca" placeholder="Buscar produto...">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th><th class="num">Preço</th><th class="num">Estoque ML</th>
+              <th class="num">Estoque real</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="estoqueBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ============================================================
+  // CONFIGURAÇÃO — https://zifzcmgfaphnzunkmadu.supabase.co
+  // (veja o DEPLOY.md). Sem isso o painel não liga.
+  // ============================================================
+  var SUPABASE_URL = "https://zifzcmgfaphnzunkmadu.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_xmypMbV9awjR1hRiXVQXOQ_ASgMUlvz";
+
+  var state = { vendas: [], metas: {}, mesAtual: null, anuncios: [] };
+
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function hojeYYYYMM() {
+    var d = new Date();
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1);
+  }
+  function fmtBRL(n) {
+    n = Number(n) || 0;
+    return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+  function fmtDataBR(iso) {
+    var p = String(iso).split("-");
+    return p[2] + "/" + p[1] + "/" + p[0];
+  }
+  function diasNoMes(ano, mes) { return new Date(ano, mes, 0).getDate(); }
+
+  function liquidoDe(v) {
+    return (Number(v.valorVenda) || 0) - (Number(v.tarifa) || 0) - (Number(v.envios) || 0) + (Number(v.estornos) || 0);
+  }
+
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._h);
+    toast._h = setTimeout(function () { t.classList.remove("show"); }, 2500);
+  }
+
+  // ---------- abas ----------
+  document.querySelectorAll("nav.tabs button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("nav.tabs button").forEach(function (b) { b.setAttribute("aria-selected", "false"); });
+      btn.setAttribute("aria-selected", "true");
+      ["painel", "lancar", "lista", "estoque"].forEach(function (id) {
+        document.getElementById("tab-" + id).hidden = (id !== btn.dataset.tab);
+      });
+    });
+  });
+
+  // ---------- radio linha ----------
+  document.querySelectorAll(".radio-opt").forEach(function (opt) {
+    opt.addEventListener("click", function () {
+      document.querySelectorAll(".radio-opt").forEach(function (o) { o.classList.remove("checked"); });
+      opt.classList.add("checked");
+      opt.querySelector("input").checked = true;
+    });
+  });
+
+  // ---------- preview líquido ----------
+  function atualizarPreview() {
+    var v = parseFloat(document.getElementById("fValor").value) || 0;
+    var t = parseFloat(document.getElementById("fTarifa").value) || 0;
+    var e = parseFloat(document.getElementById("fEnvios").value) || 0;
+    var es = parseFloat(document.getElementById("fEstornos").value) || 0;
+    document.getElementById("previewLiquido").innerHTML = "Valor líquido: <b>" + fmtBRL(v - t - e + es) + "</b>";
+  }
+  ["fValor", "fTarifa", "fEnvios", "fEstornos"].forEach(function (id) {
+    document.getElementById(id).addEventListener("input", atualizarPreview);
+  });
+  document.getElementById("fData").valueAsDate = new Date();
+
+  // ---------- chamadas ao Supabase (PostgREST) ----------
+  function urlConfigurada() {
+    return SUPABASE_URL && SUPABASE_URL.indexOf("COLE_AQUI") === -1 &&
+      SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.indexOf("COLE_AQUI") === -1;
+  }
+
+  function supaHeaders(extra) {
+    var h = {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+      "Content-Type": "application/json",
+    };
+    if (extra) for (var k in extra) h[k] = extra[k];
+    return h;
+  }
+
+  // converte entre as colunas do banco (snake_case) e os campos usados no JS (camelCase)
+  function vendaDoBanco(row) {
+    return {
+      id: row.id, data: row.data, linha: row.linha,
+      valorVenda: row.valor_venda, tarifa: row.tarifa, envios: row.envios,
+      estornos: row.estornos, qtdPecas: row.qtd_pecas, observacoes: row.observacoes,
+      criadoEm: row.criado_em,
+    };
+  }
+  function vendaParaBanco(v) {
+    return {
+      data: v.data, linha: v.linha, valor_venda: v.valorVenda, tarifa: v.tarifa,
+      envios: v.envios, estornos: v.estornos, qtd_pecas: v.qtdPecas, observacoes: v.observacoes,
+    };
+  }
+
+  async function carregarVendas() {
+    var r = await fetch(SUPABASE_URL + "/rest/v1/vendas?select=*&order=data.desc", { headers: supaHeaders() });
+    if (!r.ok) throw new Error("falha ao carregar vendas (" + r.status + ")");
+    var rows = await r.json();
+    return rows.map(vendaDoBanco);
+  }
+
+  async function carregarMetas() {
+    var r = await fetch(SUPABASE_URL + "/rest/v1/metas?select=*", { headers: supaHeaders() });
+    if (!r.ok) throw new Error("falha ao carregar metas (" + r.status + ")");
+    var rows = await r.json();
+    var out = {};
+    rows.forEach(function (row) { out[row.mes] = row.valor; });
+    return out;
+  }
+
+  async function carregarAnuncios() {
+    var r = await fetch(SUPABASE_URL + "/rest/v1/anuncios?select=*&order=produto.asc", { headers: supaHeaders() });
+    if (!r.ok) throw new Error("falha ao carregar anúncios (" + r.status + ")");
+    return r.json();
+  }
+
+  async function recarregarTudo(mostrarToastErro) {
+    try {
+      var resultados = await Promise.all([carregarVendas(), carregarMetas(), carregarAnuncios()]);
+      state.vendas = resultados[0];
+      state.metas = resultados[1];
+      state.anuncios = resultados[2];
+      render();
+    } catch (e) {
+      console.error(e);
+      if (mostrarToastErro !== false) toast("Não consegui atualizar os dados agora.");
+    }
+  }
+
+  async function inserirVenda(payload) {
+    var id = "v" + new Date().getTime() + "_" + Math.floor(Math.random() * 1000);
+    var body = vendaParaBanco(payload);
+    body.id = id;
+    var r = await fetch(SUPABASE_URL + "/rest/v1/vendas", {
+      method: "POST",
+      headers: supaHeaders({ "Prefer": "return=minimal" }),
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error("falha ao salvar (" + r.status + ")");
+    return id;
+  }
+
+  async function apagarVendaNoBanco(id) {
+    var r = await fetch(SUPABASE_URL + "/rest/v1/vendas?id=eq." + encodeURIComponent(id), {
+      method: "DELETE",
+      headers: supaHeaders({ "Prefer": "return=minimal" }),
+    });
+    if (!r.ok) throw new Error("falha ao excluir (" + r.status + ")");
+  }
+
+  async function salvarMetaNoBanco(mes, valor) {
+    var r = await fetch(SUPABASE_URL + "/rest/v1/metas?on_conflict=mes", {
+      method: "POST",
+      headers: supaHeaders({ "Prefer": "resolution=merge-duplicates,return=minimal" }),
+      body: JSON.stringify({ mes: mes, valor: valor }),
+    });
+    if (!r.ok) throw new Error("falha ao salvar meta (" + r.status + ")");
+  }
+
+  async function atualizarAnuncioNoBanco(id, campos) {
+    var r = await fetch(SUPABASE_URL + "/rest/v1/anuncios?id=eq." + encodeURIComponent(id), {
+      method: "PATCH",
+      headers: supaHeaders({ "Prefer": "return=minimal" }),
+      body: JSON.stringify(campos),
+    });
+    if (!r.ok) throw new Error("falha ao atualizar (" + r.status + ")");
+  }
+
+  // ---------- render ----------
+  function entradasDoMes() {
+    var ym = state.mesAtual;
+    return state.vendas.filter(function (v) { return String(v.data || "").slice(0, 7) === ym; });
+  }
+
+  function render() {
+    var ym = state.mesAtual;
+    var ano = parseInt(ym.slice(0, 4), 10);
+    var mes = parseInt(ym.slice(5, 7), 10);
+    var entradas = entradasDoMes();
+
+    var vendido = entradas.reduce(function (s, v) { return s + (Number(v.valorVenda) || 0); }, 0);
+    var liquido = entradas.reduce(function (s, v) { return s + liquidoDe(v); }, 0);
+    var taxaFrete = vendido - liquido;
+    var pedidos = entradas.length;
+    var ticket = pedidos ? vendido / pedidos : 0;
+
+    var diasMes = diasNoMes(ano, mes);
+    var hoje = new Date();
+    var fimMes = new Date(ano, mes, 0);
+    var diasCorridos;
+    if (fimMes < new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate())) diasCorridos = diasMes;
+    else if (ano === hoje.getFullYear() && mes === (hoje.getMonth() + 1)) diasCorridos = hoje.getDate();
+    else diasCorridos = 0;
+    var projecao = diasCorridos > 0 ? (vendido / diasCorridos) * diasMes : 0;
+
+    var meta = Number(state.metas[ym]) || 0;
+    var pctMeta = meta > 0 ? (vendido / meta * 100) : null;
+
+    var vendaPrimeira = entradas.filter(function (v) { return v.linha === "Primeira"; }).reduce(function (s, v) { return s + (Number(v.valorVenda) || 0); }, 0);
+    var vendaSegunda = entradas.filter(function (v) { return v.linha === "Segunda"; }).reduce(function (s, v) { return s + (Number(v.valorVenda) || 0); }, 0);
+
+    renderStats(vendido, liquido, taxaFrete, meta, pctMeta, projecao, ticket, pedidos, diasCorridos, diasMes);
+    renderLinhas(vendaPrimeira, vendaSegunda);
+    renderChart(entradas, ano, mes, diasMes);
+    renderTopProdutos(entradas);
+    renderLista(entradas);
+    renderEstoque();
+  }
+
+  function renderEstoque() {
+    var termo = (document.getElementById("estoqueBusca").value || "").trim().toLowerCase();
+    var lista = state.anuncios.filter(function (a) {
+      return !termo || String(a.produto || "").toLowerCase().indexOf(termo) !== -1;
+    });
+
+    var prontas = state.anuncios.filter(function (a) { return a.status === "PRONTA ENTREGA"; }).length;
+    var producao = state.anuncios.filter(function (a) { return a.status === "PRODUÇÃO"; }).length;
+    var somaReal = state.anuncios.reduce(function (s, a) { return s + (Number(a.estoque_real) || 0); }, 0);
+    document.getElementById("estoqueResumo").innerHTML =
+      '<span><b>' + state.anuncios.length + '</b> produtos</span>' +
+      '<span><b>' + prontas + '</b> pronta entrega</span>' +
+      '<span><b>' + producao + '</b> em produção</span>' +
+      '<span><b>' + somaReal + '</b> peças em estoque real (soma)</span>';
+
+    var body = document.getElementById("estoqueBody");
+    if (!lista.length) {
+      body.innerHTML = '<tr><td colspan="5"><div class="empty">Nenhum produto encontrado.</div></td></tr>';
+      return;
+    }
+    body.innerHTML = lista.map(function (a) {
+      var statusCls = a.status === "PRONTA ENTREGA" ? "pronta" : "producao";
+      return '<tr data-id="' + a.id + '">' +
+        '<td>' + escapeHtml(a.produto || "") + '</td>' +
+        '<td class="num">' + fmtBRL(a.preco) + '</td>' +
+        '<td class="num">' + (a.estoque_ml === null || a.estoque_ml === undefined ? "-" : a.estoque_ml) + '</td>' +
+        '<td class="num"><input type="number" class="inline-num" min="0" step="1" value="' + (a.estoque_real === null || a.estoque_real === undefined ? "" : a.estoque_real) + '" data-field="estoque_real"></td>' +
+        '<td><select class="inline-select ' + statusCls + '" data-field="status">' +
+        '<option value="PRODUÇÃO"' + (a.status === "PRODUÇÃO" ? " selected" : "") + '>PRODUÇÃO</option>' +
+        '<option value="PRONTA ENTREGA"' + (a.status === "PRONTA ENTREGA" ? " selected" : "") + '>PRONTA ENTREGA</option>' +
+        '</select></td>' +
+        '</tr>';
+    }).join("");
+
+    body.querySelectorAll('input[data-field="estoque_real"]').forEach(function (inp) {
+      inp.addEventListener("change", onEstoqueRealChange);
+    });
+    body.querySelectorAll('select[data-field="status"]').forEach(function (sel) {
+      sel.addEventListener("change", onEstoqueStatusChange);
+    });
+  }
+
+  async function onEstoqueRealChange(ev) {
+    var inp = ev.currentTarget;
+    var tr = inp.closest("tr");
+    var id = tr.dataset.id;
+    var valor = inp.value === "" ? null : parseInt(inp.value, 10);
+    try {
+      await atualizarAnuncioNoBanco(id, { estoque_real: valor });
+      var item = state.anuncios.find(function (a) { return String(a.id) === String(id); });
+      if (item) item.estoque_real = valor;
+      toast("Estoque real atualizado.");
+    } catch (e) {
+      console.error(e);
+      toast("Não deu pra salvar o estoque real agora.");
+    }
+  }
+
+  async function onEstoqueStatusChange(ev) {
+    var sel = ev.currentTarget;
+    var tr = sel.closest("tr");
+    var id = tr.dataset.id;
+    var valor = sel.value;
+    sel.className = "inline-select " + (valor === "PRONTA ENTREGA" ? "pronta" : "producao");
+    try {
+      await atualizarAnuncioNoBanco(id, { status: valor });
+      var item = state.anuncios.find(function (a) { return String(a.id) === String(id); });
+      if (item) item.status = valor;
+      toast("Status atualizado.");
+    } catch (e) {
+      console.error(e);
+      toast("Não deu pra salvar o status agora.");
+    }
+  }
+
+  function statTile(label, valueHtml, sub, cls) {
+    return '<div class="stat"><div class="label">' + label + '</div><div class="value' + (cls ? " " + cls : "") + '">' + valueHtml + '</div>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div>';
+  }
+
+  function renderStats(vendido, liquido, taxaFrete, meta, pctMeta, projecao, ticket, pedidos, diasCorridos, diasMes) {
+    var html = "";
+    html += statTile("Vendido", fmtBRL(vendido), pctMeta !== null ? (pctMeta.toFixed(1).replace(".", ",") + "% da meta") : "meta não definida", "accent");
+    html += statTile("Valor líquido", fmtBRL(liquido));
+    html += statTile("Taxa + frete", fmtBRL(taxaFrete));
+    html += statTile("Projeção do mês", fmtBRL(projecao), diasCorridos + " de " + diasMes + " dias", projecao >= meta && meta > 0 ? "ok" : null);
+    html += statTile("Ticket médio", fmtBRL(ticket));
+    html += statTile("Pedidos", String(pedidos));
+    document.getElementById("statsGrid").innerHTML = html;
+
+    document.getElementById("metaCard").innerHTML =
+      '<div class="meta-info"><span class="label">Meta do mês</span><span class="value">' + fmtBRL(meta) + '</span></div>' +
+      '<div class="meta-edit"><input type="number" id="metaInput" step="0.01" min="0" placeholder="nova meta">' +
+      '<button type="button" id="metaSalvar">Salvar</button></div>';
+    document.getElementById("metaSalvar").addEventListener("click", salvarMeta);
+  }
+
+  function renderLinhas(primeira, segunda) {
+    var total = primeira + segunda;
+    var pctP = total ? (primeira / total * 100) : 0;
+    var pctS = total ? (segunda / total * 100) : 0;
+    var html = '<div class="linha-tile primeira"><span class="nome">Primeira</span><span class="valor">' + fmtBRL(primeira) + '</span><span class="pct">' + pctP.toFixed(1).replace(".", ",") + '% do mês</span></div>' +
+      '<div class="linha-tile segunda"><span class="nome">Segunda</span><span class="valor">' + fmtBRL(segunda) + '</span><span class="pct">' + pctS.toFixed(1).replace(".", ",") + '% do mês</span></div>';
+    document.getElementById("linhasSplit").innerHTML = html;
+  }
+
+  function renderChart(entradas, ano, mes, diasMes) {
+    var porDia = new Array(diasMes + 1).fill(0);
+    entradas.forEach(function (v) {
+      var d = parseInt(String(v.data || "").slice(8, 10), 10);
+      if (d >= 1 && d <= diasMes) porDia[d] += Number(v.valorVenda) || 0;
+    });
+    var max = Math.max.apply(null, porDia.slice(1));
+    if (max <= 0) max = 100;
+    var W = 800, H = 220, padL = 54, padB = 26, padT = 12, padR = 10;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+    var barGap = 3;
+    var barW = Math.max(2, (innerW / diasMes) - barGap);
+
+    var svg = "";
+    [0.25, 0.5, 0.75, 1].forEach(function (f) {
+      var y = padT + innerH * (1 - f);
+      svg += '<line class="grid" x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '"></line>';
+      svg += '<text x="' + (padL - 8) + '" y="' + (y + 3) + '" font-size="10" text-anchor="end">' + fmtBRLcurto(max * f) + '</text>';
+    });
+    for (var d = 1; d <= diasMes; d++) {
+      var v = porDia[d];
+      var h = (v / max) * innerH;
+      var x = padL + (d - 1) * (innerW / diasMes) + barGap / 2;
+      var y = padT + innerH - h;
+      svg += '<rect class="bar" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(0, h).toFixed(1) + '" rx="2"><title>' + d + '/' + pad2(mes) + ': ' + fmtBRL(v) + '</title></rect>';
+      if (d === 1 || d % 5 === 0 || d === diasMes) {
+        svg += '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (H - 8) + '" font-size="10" text-anchor="middle">' + d + '</text>';
+      }
+    }
+    document.getElementById("dailyChart").innerHTML = svg;
+    var totalMes = porDia.reduce(function (s, v) { return s + v; }, 0);
+    document.getElementById("chartLede").textContent = totalMes > 0 ? "Maior dia: " + fmtBRL(max) + "." : "Nenhuma venda lançada neste mês ainda.";
+  }
+
+  function fmtBRLcurto(n) {
+    if (n >= 1000) return "R$" + (n / 1000).toFixed(1).replace(".", ",") + "k";
+    return "R$" + Math.round(n);
+  }
+
+  function renderTopProdutos(entradas) {
+    var mapa = {};
+    entradas.forEach(function (v) {
+      var nome = String(v.observacoes || "").trim();
+      if (!nome) nome = "(sem observação)";
+      var chave = nome.toLowerCase();
+      if (!mapa[chave]) mapa[chave] = { nome: nome, valor: 0, qtd: 0 };
+      mapa[chave].valor += Number(v.valorVenda) || 0;
+      mapa[chave].qtd += Number(v.qtdPecas) || 0;
+    });
+    var lista = Object.values(mapa).sort(function (a, b) { return b.valor - a.valor; }).slice(0, 8);
+    var el = document.getElementById("topProdutos");
+    if (!lista.length) { el.innerHTML = '<div class="empty">Nenhuma venda lançada neste mês ainda.</div>'; return; }
+    el.innerHTML = lista.map(function (p) {
+      return '<div class="top-produtos-row"><span class="nome">' + escapeHtml(p.nome) + '</span><span class="qtd">' + p.qtd + ' pç</span><span class="valor">' + fmtBRL(p.valor) + '</span></div>';
+    }).join("");
+  }
+
+  function renderLista(entradas) {
+    var ordenadas = entradas.slice().sort(function (a, b) { return String(b.data || "").localeCompare(String(a.data || "")); });
+    var body = document.getElementById("listaBody");
+    if (!ordenadas.length) {
+      body.innerHTML = '<tr><td colspan="7"><div class="empty">Nenhum lançamento neste mês. Adicione o primeiro em "Lançar venda".</div></td></tr>';
+      return;
+    }
+    body.innerHTML = ordenadas.map(function (v) {
+      return '<tr data-id="' + v.id + '">' +
+        '<td>' + fmtDataBR(v.data) + '</td>' +
+        '<td><span class="badge ' + (v.linha === "Primeira" ? "primeira" : "segunda") + '">' + v.linha + '</span></td>' +
+        '<td class="num">' + fmtBRL(v.valorVenda) + '</td>' +
+        '<td class="num">' + fmtBRL(liquidoDe(v)) + '</td>' +
+        '<td class="num">' + (v.qtdPecas || 0) + '</td>' +
+        '<td>' + escapeHtml(v.observacoes || "") + '</td>' +
+        '<td><button type="button" class="del-btn" data-id="' + v.id + '">excluir</button></td>' +
+        '</tr>';
+    }).join("");
+    body.querySelectorAll(".del-btn").forEach(function (btn) { btn.addEventListener("click", onDeleteClick); });
+  }
+
+  function onDeleteClick(ev) {
+    var btn = ev.currentTarget;
+    if (btn.dataset.armed !== "1") {
+      btn.dataset.armed = "1";
+      btn.textContent = "confirmar?";
+      btn.classList.add("confirm");
+      btn.dataset.timer = setTimeout(function () {
+        btn.dataset.armed = "0";
+        btn.textContent = "excluir";
+        btn.classList.remove("confirm");
+      }, 4000);
+      return;
+    }
+    clearTimeout(btn.dataset.timer);
+    var id = btn.dataset.id;
+    btn.disabled = true;
+    btn.textContent = "excluindo...";
+    excluirVenda(id);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  async function salvarMeta() {
+    var input = document.getElementById("metaInput");
+    var val = parseFloat(input.value);
+    if (!val || val <= 0) { toast("Digite um valor de meta válido."); return; }
+    try {
+      await salvarMetaNoBanco(state.mesAtual, val);
+      toast("Meta salva.");
+      await recarregarTudo();
+    } catch (e) {
+      console.error(e);
+      toast("Não deu pra salvar a meta agora.");
+    }
+  }
+
+  document.getElementById("entryForm").addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    if (!urlConfigurada()) { toast("Painel ainda sem a URL do Apps Script configurada."); return; }
+    var btn = document.getElementById("submitBtn");
+    var linhaEl = document.querySelector('input[name="linha"]:checked');
+    var payload = {
+      data: document.getElementById("fData").value,
+      linha: linhaEl ? linhaEl.value : "Segunda",
+      valorVenda: parseFloat(document.getElementById("fValor").value) || 0,
+      tarifa: parseFloat(document.getElementById("fTarifa").value) || 0,
+      envios: parseFloat(document.getElementById("fEnvios").value) || 0,
+      estornos: parseFloat(document.getElementById("fEstornos").value) || 0,
+      qtdPecas: parseInt(document.getElementById("fQtd").value, 10) || 1,
+      observacoes: document.getElementById("fObs").value.trim(),
+    };
+    if (!payload.data || !payload.valorVenda) { toast("Preencha data e valor da venda."); return; }
+    btn.disabled = true; btn.textContent = "Salvando...";
+    try {
+      await inserirVenda(payload);
+      toast("Venda lançada.");
+      document.getElementById("entryForm").reset();
+      document.getElementById("fData").valueAsDate = new Date();
+      document.querySelectorAll(".radio-opt").forEach(function (o) { o.classList.remove("checked"); });
+      document.querySelector('.radio-opt[data-linha="Segunda"]').classList.add("checked");
+      atualizarPreview();
+      await recarregarTudo();
+    } catch (e) {
+      console.error(e);
+      toast("Não deu pra salvar. Tenta de novo.");
+    } finally {
+      btn.disabled = false; btn.textContent = "Salvar venda";
+    }
+  });
+
+  async function excluirVenda(id) {
+    try {
+      await apagarVendaNoBanco(id);
+      toast("Lançamento excluído.");
+      await recarregarTudo();
+    } catch (e) {
+      console.error(e);
+      toast("Não deu pra excluir agora.");
+    }
+  }
+
+  document.getElementById("estoqueBusca").addEventListener("input", renderEstoque);
+
+  document.getElementById("refreshBtn").addEventListener("click", function () { recarregarTudo(); });
+  document.getElementById("mesInput").addEventListener("change", function (e) {
+    state.mesAtual = e.target.value;
+    render();
+  });
+
+  // ---------- início ----------
+  function init() {
+    state.mesAtual = hojeYYYYMM();
+    document.getElementById("mesInput").value = state.mesAtual;
+
+    if (!urlConfigurada()) {
+      document.getElementById("statsGrid").innerHTML =
+        '<div class="setup-warning" style="grid-column:1/-1">' +
+        'Falta configurar este painel: abra o arquivo <code>index.html</code>, ' +
+        'ache as linhas <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no topo do script, ' +
+        'e cole os valores do seu projeto Supabase (veja o DEPLOY.md).' +
+        '</div>';
+      return;
+    }
+    recarregarTudo();
+    setInterval(function () { recarregarTudo(false); }, 60000);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
